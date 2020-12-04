@@ -49,6 +49,7 @@
 # According to the above rules, your improved system would report 2 valid passports.
 # 
 # Count the number of valid passports - those that have all required fields. Treat cid as optional. In your batch file, how many passports are valid?
+library("tidyverse")
 
 input_test <- data.frame("X1" = readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day04/input_test.txt"))
 
