@@ -178,10 +178,10 @@ passport_test2 <- function(dat){
       key == "iyr" ~ nchar(value) == 4 & (value >= 2010 & value <= 2020),
       key == "eyr" ~ nchar(value) == 4 & (value >= 2020 & value <= 2030),
       key == "hgt" & !grepl("cm|in", value) ~ FALSE,
-      key == "hgt" & grepl("cm", value) ~ grepl("\\d{1,}(cm|in)", value) & (num_val >= 150 & num_val <= 193),
-      key == "hgt" & grepl("in", value) ~ grepl("\\d{1,}(cm|in)", value) & (num_val >= 59 & num_val <= 76),
+      key == "hgt" & grepl("cm", value) ~ grepl("^\\d{1,}(cm|in)$", value) & (num_val >= 150 & num_val <= 193),
+      key == "hgt" & grepl("in", value) ~ grepl("^\\d{1,}(cm|in)$", value) & (num_val >= 59 & num_val <= 76),
       key == "hcl" ~ grepl("^#(\\d|[a-f]){6}$", value), 
-      key == "ecl" ~ grepl("amb|blu|brn|gry|grn|hzl|oth", value),
+      key == "ecl" ~ grepl("^(amb|blu|brn|gry|grn|hzl|oth)$", value),
       key == "pid" ~ nchar(value) == 9, #don't use \\d{9} you dummy, it would be ^\\d{9}$
       key == "cid" & is.na(value) ~ TRUE,
       TRUE ~ NA
