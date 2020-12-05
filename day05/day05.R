@@ -141,3 +141,10 @@ out2 <- out %>%
          BELOW = is.na(lag(SEAT_ARRAY, 1))) %>%
   filter(is.na(SEAT_ARRAY) & ABOVE == FALSE & BELOW == FALSE)
 
+
+####POST-SOLUTION###
+#A way to get seat id using binary:
+
+library(sfsmisc) 
+
+seat_id <- map_chr(test_input, ~as.integer(as.intBase(gsub("B|R", "1", gsub("F|L", "0", .x)), base = 2)))
