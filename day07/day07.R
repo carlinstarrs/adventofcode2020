@@ -42,7 +42,7 @@
 # How many bag colors can eventually contain at least one shiny gold bag? (The
 # list of rules is quite long; make sure you get all of it.)
 
-
+library("tidyverse")
 ####PART 1####
 input_test <-  readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day07/input_test.txt")
 input <-  readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day07/input.txt")
@@ -102,4 +102,36 @@ get_all_bags(input, "shiny gold")
 
 # How many individual bags are required inside your single shiny gold bag?
 
-input_test2 <-  readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day07/input_test2.txt")
+get_bag_nums <- function(dat){
+  data.frame("X1" = dat) %>% 
+    mutate(id = 1:n(), 
+           bag_color = word(X1, 1, 2)) %>% 
+    separate_rows(X1, sep = " bags contain ") %>% 
+    separate_rows(X1, sep = ", ") %>% 
+    mutate(X1 = trimws(gsub("bag(|s)|\\.", "", X1)), 
+           num_bags = str_extract(X1, "^\\d{1,}"), 
+           X1 = trimws(str_remove(X1, "^\\d{1,}")), 
+           num_bags = as.numeric(num_bags)) %>% 
+    filter(!is.na(num_bags)) 
+}
+
+get_bag_count <- function(dat, start_bag){
+  bag_db <- get_bag_nums(dat)
+  
+  all_bags <- c()
+  new_bags <- start_bag
+  bag_counter <- c()
+  while(!is.null(new_bags)){
+    bags_in_bag <- map_dfr(new_bags, ~filter(bag_db, bag_color == .x))
+    bag_counter <- sum(bag_counter, bags_in_bag$num_bags)
+    new_bags <- pmap(bags_in_bag, function(...){
+      bags <- data.frame(...)
+      rep(bags$X1, as.numeric(bags$num_bags))
+    }) %>% unlist()
+  }
+  
+  return(bag_counter)
+}
+
+get_bag_count(input_test, "shiny gold")
+get_bag_count(input, "shiny gold")
