@@ -194,8 +194,6 @@ test_loop <- function(dat){
     dat$inst_id[current_row] <- inst_id
     inst_id <- inst_id + 1
     current_row <- next_row
-    
-    dat
   }
   
   if(current_row == nrow(dat) + 1){
@@ -213,7 +211,6 @@ term_loop <- function(dat){
     filter(inst %in% c("nop", "jmp")) %>% 
     mutate(new_inst = case_when(inst == "nop" ~ "jmp", 
                                 inst == "jmp" ~ "nop"))
-  
   
   for(i in 1:nrow(swaps)){
     test_variation <- dat
