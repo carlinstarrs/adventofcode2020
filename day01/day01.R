@@ -40,7 +40,7 @@ test_input <- c(1721,
                 675,
                 1456)
 
-input <- read.csv("C:/Users/cstarrs/Documents/aoc_2020/day1/input.txt", header = FALSE)[,1]
+input <- read.csv("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day01/input.txt", header = FALSE)[,1]
 
 ###TEST 1.1###
 
