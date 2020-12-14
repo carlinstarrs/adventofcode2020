@@ -191,3 +191,65 @@ get_sum(test)
 #
 # Execute the initialization program using an emulator for a version 2 decoder
 # chip. What is the sum of all values left in memory after it completes?
+
+input_test2 <-  read.csv("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day14/input_test2.txt", header = FALSE)
+
+mask_val2 <- function(mask, val, address){
+  exes <- expand.grid(rep(list(c(0,1)), length(str_extract_all(mask, "X")[[1]])))
+  
+  ma <- data.frame("mask" = str_split(mask, "")[[1]], 
+             "address" = str_split(bval(address), "")[[1]]) %>% 
+    mutate(result = case_when(mask == "X" ~ "X",
+                              mask == "1" ~ "1", 
+                              mask == "0" ~ address)) 
+  
+  colnames <- paste0("result", 1:nrow(exes))
+  all <- ma %>% select(result)
+  for(i in 1:nrow(exes)){
+      mb <- ma
+      mb$result[mb$result == "X"] <- unlist(exes[i,])
+      all <- all %>% bind_cols(mb %>% select(!!as.name(colnames[i]) := result))
+  }
+  
+  all %>% 
+    select(-result) %>% 
+    summarise(across(contains("result"), ~paste(.x, collapse = ""))) %>% 
+    pivot_longer(cols = everything()) %>% 
+    mutate(address = unbinary(value), 
+           memval = rep(val, nrow(.)))
+}
+
+run_program2 <- function(dat){
+  masks <- parse_input(dat)$mask
+  mems <- parse_input(dat)$mem 
+  
+  memories <- data.frame()
+  
+  for(i in 1:nrow(masks)){
+    mask <- masks$maskval[masks$id == i]
+    mem <- mems[mems$id == i,]
+    for(j in 1:nrow(mem)){
+      memories <- memories %>% 
+        bind_rows(mask_val2(mask, mem$memval[j], mem$address[j]) %>% bind_cols(id = i))
+    }
+  }
+  
+  return(memories)
+}
+
+get_sum2 <- function(program_out){
+  program_out %>% 
+    group_by(address) %>% 
+    slice(n()) %>% 
+    pull(memval) %>% 
+    unbinary() %>% 
+    sum() %>% 
+    sprintf('%.0f', .)
+  
+}
+
+run_program2(input_test2) %>% get_sum2()
+
+test <- run_program2(input)
+
+test %>% get_sum2
