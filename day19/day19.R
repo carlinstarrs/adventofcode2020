@@ -82,44 +82,62 @@
 # How many messages completely match rule 0?
 
 library("tidyverse")
-input_test <- readLines("C:/Users/cstarrs/Documents/GitHub/adventofcode2020/day19/input_test.txt")
+library("memoise")
 
-dat <- input_test
+input_test <- readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day19/input_test.txt")
+input <- readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day19/input.txt")
+input_test2 <- readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day19/input_test2.txt")
+
+#dat <- input_test
+dat <- input
+#dat <- input_test2
+
+messages <- dat[(which(dat == "") + 1):length(dat)]
 
 insts <- data.frame("V1" = dat[1:(which(dat == "") - 1)]) %>%
-  separate(V1, sep = ": ", into = c("id", "inst")) %>%
-  separate_rows(inst, sep = " \\| ") %>%
-  group_by(id) %>%
-  mutate(i_id = 1:n()) %>%
-  separate_rows(inst, sep = " ") %>%
-  mutate(i_id2 = 1:n())
+  separate(V1, sep = ": ", into = c("id", "inst")) %>% 
+  mutate(inst = trimws(str_remove_all(inst, '"'))) %>% 
+  arrange(as.numeric(id)) 
 
-ll <- insts %>% filter(grepl("\\b[a-z]{1,}\\b", inst))
+#Part 2 - to infinity and beyond
+# I just couldn't bear to struggle through recursive regex, so I 
+# borrowed it from this solution, and I am eternally grateful: 
+# https://github.com/AdroMine/AdventOfCode2020/blob/main/Day19/solution.R
 
-insts <- insts %>% filter(!id %in% ll$id)
+# This explanation sort of helped, but I couldn't get (42 (?R)? 31) to work, 
+# and I'm still struggling to understand the recursion enough that I don't 
+# know what it should look like. 
+# https://www.reddit.com/r/adventofcode/comments/kg82yl/2020_day_19/ggdhvia/
 
-for(i in 1:length(ll)){
-  insts <- insts %>%
-    mutate(inst = case_when(inst %in% ll$id ~  gsub(ll$id[i], ll$inst[i], inst),
-                            TRUE ~ inst))
+
+insts <- insts %>%
+  mutate(inst = case_when(id == 8 ~ "42+", 
+                          id == 11 ~ "(?P<eleven> 42 (?&eleven)? 31)",
+                          TRUE ~ inst))
+ll <- data.frame()
+insts2 <- insts
+
+while(nrow(insts2) > 1){
+  ll <- insts2 %>% 
+    filter(!grepl("\\d{1,}", inst)) %>% 
+    mutate(inst = trimws(str_remove_all(inst, '"')), 
+           inst = gsub(" ", "", inst), 
+           inst = case_when(nchar(inst) > 1 ~ paste0("(", inst, ")"), 
+                            TRUE ~ inst)
+           #inst = paste0("(", inst, ")")
+    ) %>% 
+    bind_rows(ll)
+  
+  insts2 <- insts2 %>% 
+    filter(!id %in% ll$id) %>% 
+    rowwise() %>% 
+    mutate(inst = map(inst, function(x){
+      for(i in 1:nrow(ll)){
+        x <- str_replace_all(x, paste0("\\b", ll$id[i], "\\b"),ll$inst[i])
+      }
+      return(x)
+    }))
 }
 
-newuns <- data.frame()
-uns <- insts %>% filter(!grepl("\\b[a-z]{1,}\\b", inst))
-while(!any(uns$inst %in% ll$inst)){
-  uns <- uns %>%
-    split(.$id, .$i_id) %>%
-    map_dfr(function(x){
-      insts[insts$id %in% x$inst,] %>% mutate(id = x$id)
-    })
-  newuns <- bind_rows(newuns, uns %>% filter(grepl("\\b[a-z]{1,}\\b", inst)))
-  uns <- uns %>% filter(!grepl("\\b[a-z]{1,}\\b", inst))
-}
+messages[grepl(paste0("^", gsub(" ", "", insts2$inst), "$"), messages, perl = TRUE)]
 
-a <- insts %>%
-  filter(grepl("\\b[a-z]{1,}\\b", inst)) %>%
-  bind_rows(newuns) %>%
-  group_by(id, i_id) %>%
-  arrange(id, i_id, i_id2) %>%
-  mutate(inst = gsub("\"\"", "", inst))
-  summarise(message = paste(inst, collapse = ""))
