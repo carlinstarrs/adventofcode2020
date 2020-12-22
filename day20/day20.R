@@ -186,9 +186,11 @@
 
 library("tidyverse")
 library("Thermimage")
+library("gtools")
+library("tidygraph")
 
 input_test <- readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day20/input_test.txt")
-input <- readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day20/input.txt")
+#input <- readLines("C:/Users/Carlin/Documents/GitHub/adventofcode2020/day20/input.txt")
 
 testdat <- data.frame("V1" = input_test) %>% 
   mutate(tile = str_extract(V1, "\\b\\d{1,}\\b")) %>% 
@@ -265,11 +267,75 @@ m <- tile_palooza %>%
 
 corners <- unique(m$atile[m$matches == 2])
 
+grid_size <- sqrt(length(unique(dat2$tile)))
+full_grid <- matrix(ncol = grid_size, nrow = grid_size)
+
+carray <- as.data.frame(permutations(4, 4, corners)) %>% 
+  rename("UL" = "V1", 
+         "UR" = "V2", 
+         "LR" = "V3", 
+         "LL" = "V4") %>% 
+  mutate(id = 1:n())
+
+pots <- data.frame()
+for(i in 1:nrow(carray)){
+  cc <- carray[i,]
+  mm <- as_tbl_graph(m %>% select(atile, btile))
+  nn <- vertex_attr(mm)$name
+  
+  tests <- list(c(cc$UL, cc$UR), 
+                c(cc$UR, cc$LR), 
+                c(cc$LR, cc$LL), 
+                c(cc$LL, cc$UL))
+  
+  out <- map(tests, function(tt){
+    x <- tt[1]
+    y <- tt[2]
+    
+    test <-  all_simple_paths(mm, from = which(nn == x), to = which(nn == y)) 
+    test2 <- map_dfr(seq_along(test), function(z) {
+      data.frame("V1" = names(test[[z]]), 
+                 "id" = z)
+    }) %>% 
+      group_by(id) %>%
+      mutate(count = n()) %>% 
+      ungroup()
+    
+    matches <- test2 %>% filter(count == grid_size)
+    
+    if(nrow(matches) > 0){
+      return(matches %>% select(V1))
+    } else {
+      return(NULL)
+    }
+  }) %>% 
+    compact() %>% 
+    data.frame() %>% 
+    mutate(id = cc$id)
+
+  if(ncol(out) == 5){
+    names(out) <- c("UL", "UR", "LR", "LL", "id")
+    pots <- bind_rows(pots, out)
+  }
+  i <- i + 1
+}
+
+
+
+
+# gridd <- full_grid
+# gridd[1,1] <- cc$UL
+# gridd[1, ncol(gridd)] <- cc$UR
+# gridd[nrow(gridd), 1] <- cc$LL
+# gridd[nrow(gridd), ncol(gridd)] <- cc$LR
+
 #Part 1
 prod(as.numeric(corners)) %>% sprintf('%.0f', .)
 
 #Part 2
+
 get_matches_in_dir <- function(tt){
+  all_matches <- data.frame()
   revdir <- switch(tt$border,
                    "top" = "bottom",
                    "bottom" = "top",
@@ -294,16 +360,17 @@ get_matches_in_dir <- function(tt){
   return(all_matches)
 }
 
+
 carray <- as.data.frame(permutations(4, 4, corners)) %>% 
   rename("UL" = "V1", 
          "UR" = "V2", 
          "LR" = "V3", 
          "LL" = "V4") %>% 
   mutate(id = 1:n())
-  
+
 
 out2 <- pmap_dfr(carray, function(...){
-   id <- data.frame(...) %>% pull(id)
+  id <- data.frame(...) %>% pull(id)
   cc <- data.frame(...) %>%
     select(-id) %>%
     pivot_longer(cols = everything(),
@@ -321,7 +388,7 @@ out2 <- pmap_dfr(carray, function(...){
     mutate(matches = n_distinct(border)) %>%
     filter(matches == 2) %>%
     ungroup()
-
+  
   out <- pmap_dfr(mm, function(...){
     bt <- data.frame(...) %>%
       mutate(opp_end = case_when(cdir == "UL" & border == "bottom" ~ cc$atile[cc$cdir == "UR"],
@@ -358,6 +425,21 @@ b <- out2 %>%
   group_by(id) %>% 
   mutate(gs = n()) %>% 
   ungroup() %>% 
-  filter(gs == 24)
+  filter(gs == max(gs))
+
+grid_size <- sqrt(length(unique(dat2$tile)))
+full_grid <- matrix(ncol = grid_size, nrow = grid_size)
+
+grids <- unique(b$id)
+for(i in 1:length(grids)){
+  test <- b %>% filter(id == grids[i]) %>% mutate(step = as.numeric(gsub("^\\d{1,}_", "", step))) %>% ungroup()
+  ss <- unique(test$step[test$step > 0])
+  
+  for(s in ss){
+    test %>% 
+      filter(step == s)
+  }
+}
+
 
 
